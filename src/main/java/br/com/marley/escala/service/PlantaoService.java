@@ -2,7 +2,7 @@ package br.com.marley.escala.service;
 
 import br.com.marley.escala.entity.Plantao;
 import br.com.marley.escala.entity.Profissional;
-import br.com.marley.escala.entity.Turno;
+import br.com.marley.escala.enums.Turno;
 import br.com.marley.escala.exception.RegraNegocioException;
 import br.com.marley.escala.repository.PlantaoRepository;
 import br.com.marley.escala.repository.ProfissionalRepository;

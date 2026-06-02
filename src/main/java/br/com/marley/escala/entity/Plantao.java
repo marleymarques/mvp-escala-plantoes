@@ -1,5 +1,6 @@
 package br.com.marley.escala.entity;
 
+import br.com.marley.escala.enums.Turno;
 import jakarta.persistence.*;
 import lombok.Data;
 
