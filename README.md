@@ -1,19 +1,38 @@
-# MVP Escala de Plantões
+# Escala de Plantões
 
-Projeto desenvolvido para teste técnico utilizando:
+Projeto desenvolvido como teste técnico para gerenciamento de escalas de plantão de profissionais da saúde.
 
-- Java 21
+## Tecnologias
+
+- Java 17
 - Spring Boot
-- Maven
+- Spring Data JPA
 - H2 Database
+- Swagger OpenAPI
+- Maven
+- Lombok
 
-## Status
+## Funcionalidades
 
-Em desenvolvimento.
+### Profissionais
 
-## Funcionalidades previstas
+- Cadastro de profissionais
+- Validação de CRM/COREN único
+- Busca por categoria
 
-- Cadastro de Profissionais
-- Cadastro de Plantões
-- Visualização semanal
-- Validações de carga horária
+### Plantões
+
+- Cadastro de plantões
+- Associação de profissional
+- Controle de turnos
+
+### Regras de Negócio
+
+- Impede profissional duplicado no mesmo turno
+- Valida carga horária semanal
+- Tratamento de exceções com HTTP 400
+
+## Executando o projeto
+
+```bash
+mvn spring-boot:run
