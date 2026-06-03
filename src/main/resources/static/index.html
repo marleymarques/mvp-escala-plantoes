@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escala de Plantões</title>
+    <style>
+        :root {
+            --primary: #1b6ec2;
+            --primary-light: #e8f1fb;
+            --border: #d8e2ef;
+            --text: #1f2937;
+            --muted: #64748b;
+            --danger: #b42318;
+            --danger-bg: #fff1f0;
+            --success-bg: #ecfdf3;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+            background: #f7f9fc;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 24px 32px;
+        }
+
+        h1 { margin: 0 0 6px; font-size: 26px; }
+        p { margin: 0; color: var(--muted); }
+
+        main { padding: 24px 32px; }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        input {
+            height: 38px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        button {
+            height: 38px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--primary-light);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th { font-size: 13px; color: var(--muted); background: #fbfdff; }
+
+        .profissional strong { display: block; }
+        .profissional span { color: var(--muted); font-size: 12px; }
+
+        .turno {
+            display: inline-block;
+            min-width: 72px;
+            padding: 6px 8px;
+            border-radius: 999px;
+            background: var(--success-bg);
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .vazio { color: #94a3b8; }
+
+        tr.limite-atingido {
+            background: var(--danger-bg);
+        }
+
+        .badge-limite {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--danger);
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .erro {
+            color: var(--danger);
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Escala de Plantões</h1>
+    <p>Grade semanal por profissional, com destaque para carga horária atingida.</p>
+</header>
+
+<main>
+    <section class="toolbar">
+        <div>
+            <label for="dataInicial">Data inicial da semana</label>
+            <input type="date" id="dataInicial" />
+        </div>
+        <button onclick="carregarGrade()">Consultar escala</button>
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <strong id="periodo">Semana</strong>
+            <span id="resumo"></span>
+        </div>
+        <div id="conteudo"></div>
+    </section>
+</main>
+
+<script>
+    const inputData = document.getElementById('dataInicial');
+    inputData.value = obterSegundaFeiraAtual();
+    carregarGrade();
+
+    function obterSegundaFeiraAtual() {
+        const hoje = new Date();
+        const dia = hoje.getDay();
+        const diferenca = dia === 0 ? -6 : 1 - dia;
+        hoje.setDate(hoje.getDate() + diferenca);
+        return hoje.toISOString().substring(0, 10);
+    }
+
+    async function carregarGrade() {
+        const dataInicial = inputData.value;
+        const conteudo = document.getElementById('conteudo');
+        conteudo.innerHTML = '<p style="padding:16px">Carregando escala...</p>';
+
+        try {
+            const resposta = await fetch(`/api/plantoes/semana?dataInicial=${dataInicial}`);
+
+            if (!resposta.ok) {
+                throw new Error('Não foi possível carregar a escala.');
+            }
+
+            const grade = await resposta.json();
+            renderizarGrade(grade);
+        } catch (erro) {
+            conteudo.innerHTML = `<div class="erro">${erro.message}</div>`;
+        }
+    }
+
+    function renderizarGrade(grade) {
+        document.getElementById('periodo').innerText = `${formatarData(grade.dataInicial)} até ${formatarData(grade.dataFinal)}`;
+        document.getElementById('resumo').innerText = `${grade.profissionais.length} profissional(is)`;
+
+        const cabecalhoDias = grade.dias.map(dia => `<th>${formatarDiaSemana(dia)}<br>${formatarData(dia)}</th>`).join('');
+
+        const linhas = grade.profissionais.map(profissional => {
+            const classeLimite = profissional.limiteAtingido ? 'limite-atingido' : '';
+            const celulasDias = grade.dias.map(dia => {
+                const turno = profissional.dias[dia];
+                return `<td>${turno ? `<span class="turno">${turno}</span>` : '<span class="vazio">—</span>'}</td>`;
+            }).join('');
+
+            return `
+                <tr class="${classeLimite}">
+                    <td class="profissional">
+                        <strong>${profissional.nome}</strong>
+                        <span>${profissional.categoria} • ${profissional.horasAlocadas}/${profissional.cargaHorariaSemanal}h</span>
+                        ${profissional.limiteAtingido ? '<br><span class="badge-limite">Limite atingido</span>' : ''}
+                    </td>
+                    ${celulasDias}
+                </tr>
+            `;
+        }).join('');
+
+        document.getElementById('conteudo').innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Profissional</th>
+                        ${cabecalhoDias}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas || '<tr><td colspan="8">Nenhum profissional cadastrado.</td></tr>'}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function formatarData(data) {
+        return new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR');
+    }
+
+    function formatarDiaSemana(data) {
+        return new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR', { weekday: 'short' });
+    }
+</script>
+</body>
+</html>
